@@ -9,6 +9,7 @@ Route::post('/register/player', [WordleGameController::class, 'registerPlayer'])
 Route::post('/login/player', [WordleGameController::class, 'loginPlayer']);
 Route::get('/existGame/{id?}', [WordleGameController::class, 'existGame'])->name('player.existGame');
 Route::post('/store/activity', [WordleGameController::class, 'storeActivity'])->name('tracker.store');
+Route::get('/player/activity/{id?}', [WordleGameController::class, 'getActivity'])->name('player.activity');
 
 // Route::get('/', function () {
 //     return Inertia::render('Welcome');

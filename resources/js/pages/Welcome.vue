@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
-const WORD_LIST = ["REACT", "VUEJS", "WORLD", "APPLE", "SMART", "PLANT", "CLOUD", "STORM", "BREAK", "LIGHT", "FLAME", "GREAT", "PIZZA", "MUSIC", "WATER"];
+// const WORD_LIST = ["REACT", "VUEJS", "WORLD", "APPLE", "SMART", "PLANT", "CLOUD", "STORM", "BREAK", "LIGHT", "FLAME", "GREAT", "PIZZA", "MUSIC", "WATER"];
 const page = usePage();
 
 const userRegistered = computed(() => !!page.props.auth.authUser);
 const user = computed(() => page.props.auth.authUser);
 const playerId = user.value?.id;
 const playerName = user.value?.name;
+const playerRole = user.value?.role;
+const fetchedWords = page.props.words;
+
+const WORD_LIST = ref(fetchedWords).value;
 
 const formData = useForm({
     name: '',
@@ -23,6 +27,7 @@ const formData = useForm({
 
 const solution = ref("");
 const board = ref(Array(6).fill().map(() => Array(5).fill("")));
+// const board = ref([]);
 const currentRowIndex = ref(0);
 const currentColIndex = ref(0);
 const gameState = ref("playing"); // "playing", "won", "lost"
@@ -37,6 +42,10 @@ const keys = [
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
     ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'DEL']
 ];
+
+watch(board, (newBoard) => {
+    localStorage.setItem('current_game', JSON.stringify(newBoard));
+}, { deep: true });
 
 const toggleLoginMode = () => { isLoginMode.value = !isLoginMode.value; }
 
@@ -54,14 +63,26 @@ const handleSubmit = () => {
 }
 
 const resetGame = () => {
-    solution.value = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+    // 1. Pick a new word (assuming WORD_LIST is an array of objects from Laravel)
+    if (WORD_LIST && WORD_LIST.length > 0) {
+        const randomWordObj = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+        // Check if your DB returns an object { word: '...' } or just a string
+        solution.value = (randomWordObj.word || randomWordObj).toUpperCase();
+    }
+
+    // 2. Reset the grid to empty strings
     board.value = Array(6).fill().map(() => Array(5).fill(""));
+
+    // 3. Reset all tracking indexes
     currentRowIndex.value = 0;
     currentColIndex.value = 0;
     gameState.value = "playing";
     message.value = "";
     letterStates.value = {};
     showResultModal.value = false;
+
+    // 4. CRITICAL: Clear the saved game from storage so it doesn't reload the old board
+    localStorage.removeItem('current_game');
 };
 
 const showMessage = (msg, duration = 2000) => {
@@ -193,6 +214,18 @@ const onKeyDown = (e) => handleInput(e.key.toUpperCase());
 
 onMounted(() => {
     resetGame();
+    const saved = localStorage.getItem('current_game');
+
+    if (saved) {
+        const parsedData = JSON.parse(saved);
+        if (parsedData.length > 0) {
+            board.value = parsedData;
+
+            const firstEmptyRow = parsedData.findIndex(row => row.every(cell => cell === ""));
+            currentRowIndex.value = firstEmptyRow === -1 ? 0 : firstEmptyRow;
+        }
+    }
+
     window.addEventListener('keydown', onKeyDown);
 });
 
@@ -297,7 +330,8 @@ onUnmounted(() => {
                                 <option value="Ops">Operations</option>
                             </select>
 
-                            <span v-if="formData.errors.dept" class="text-red-500 text-sm">{{ formData.errors.dept }}</span>
+                            <span v-if="formData.errors.dept" class="text-red-500 text-sm">{{ formData.errors.dept
+                            }}</span>
                         </div>
                     </div>
 
@@ -316,11 +350,15 @@ onUnmounted(() => {
         </div>
 
         <!-- Header -->
-        <header class="border-b border-gray-700 pb-2 mb-8 flex justify-between items-center max-w-lg mx-auto w-full">
+        <header class="border-b border-gray-700 pb-2 mb-8 flex justify-between items-center max-w-3xl mx-auto w-full">
             <h1 class="text-3xl font-black tracking-tighter">WORDLE</h1>
             <div class="flex items-center gap-3">
                 <span v-if="userRegistered" class="text-[10px] text-gray-500 uppercase tracking-widest">{{ playerName
                 }}</span>
+                <Link v-if="userRegistered" :href="route('player.activity', { id: playerId })"
+                    class="bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 px-3 py-1.5 rounded text-xs font-bold border border-blue-800/50 transition-colors">
+                    {{ playerRole === 'admin' ? 'PLAYER ACTIVITIES' : 'MY ACTIVITY' }}
+                </Link>
                 <button @click="resetGame"
                     class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded text-xs font-bold border border-gray-700">NEW
                     GAME</button>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Wordle;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -38,10 +39,13 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        $words = Wordle::get()->value('word');
+
         return array_merge(parent::share($request), [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
+            'words' => json_decode($words),
             'auth' => [
                 'user' => $request->user(),
                 'authUser' => auth()->user()

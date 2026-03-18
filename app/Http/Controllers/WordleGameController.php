@@ -6,7 +6,6 @@ use App\Models\PlayerTracker;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon as SupportCarbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -62,29 +61,45 @@ class WordleGameController extends Controller
             'status' => 'active',
         ]);
 
-        $token = $user->createToken('world-session')->plainTextToken();
-
         Auth::login($user);
 
-        return redirect()->route('home')->with('api-token', $token);
+        return redirect()->route('home');
     }
 
     public function existGame($id)
     {
         $user = User::findOrFail($id);
 
+        $user->update([
+            'status' => 'inactive',
+        ]);
+
         Auth::logout($user);
 
         return redirect()->route('home');
     }
 
-    public function storeActivity (Request $request) {
+    public function storeActivity(Request $request)
+    {
         PlayerTracker::create([
             'user_id' => Auth::id(),
             'answer' => $request->answer,
             'attempt_number' => $request->attempt_number,
             'result' => $request->result,
-            'activity_date' => Carbon::now()->format('Y-m-d')
+            'activity_date' => Carbon::now()->timezone('Asia/Yangon')
+        ]);
+    }
+
+    public function getActivity($id = null)
+    {
+        if (Auth::user()->role === 'admin') {
+            $activityLogs = PlayerTracker::with('user')->get();
+        } else {
+            $activityLogs = PlayerTracker::with('user')->where('user_id', $id)->get();
+        }
+
+        return Inertia::render('PlayerActivities', [
+            'activityLogs' => $activityLogs
         ]);
     }
 }

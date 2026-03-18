@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('tid')->nullable();
             $table->string('dept')->nullable();
+            $table->enum('role', ['employee', 'admin'])->default('employee');
             $table->dateTime('login_timestamp')->nullable()->useCurrent();
             $table->enum('status', ['active', 'inactive'])->default('inactive');
             $table->timestamp('email_verified_at')->nullable();
