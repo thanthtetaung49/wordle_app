@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class PlayerInformation extends Model
+class PlayerTracker extends Model
 {
     protected $guarded = [];
 }
