@@ -4,11 +4,10 @@ import { computed, ref, watch } from 'vue';
 import debounce from 'lodash/debounce';
 
 const page = usePage();
-const props = defineProps(['activityLogs', 'filters', 'users'])
+const props = defineProps(['activityLogs', 'filters'])
 const isRefreshing = ref(false);
 const activityLogs = computed(() => props.activityLogs.data);
 
-const userIdFilter = ref(props.filters.user_id || 'all');
 const search = ref(props.filters.search || '');
 const resultFilter = ref(props.filters.result || 'all');
 
@@ -29,11 +28,10 @@ const refreshData = () => {
     });
 };
 
-watch([search, resultFilter, userIdFilter], debounce(([newSearch, newResult, newUser]) => {
+watch([search, resultFilter], debounce(([newSearch, newResult]) => {
     router.get(route('player.activity'), {
         search: newSearch,
         result: newResult,
-        user_id: newUser
     }, {
         preserveState: true,
         replace: true,
@@ -90,14 +88,6 @@ watch([search, resultFilter, userIdFilter], debounce(([newSearch, newResult, new
                 <option value="all">All Results</option>
                 <option value="correct">Success</option>
                 <option value="wrong">Failed</option>
-            </select>
-
-            <select v-if="props.users" v-model="userIdFilter"
-                class="bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-300 outline-none focus:ring-1 focus:ring-blue-500">
-                <option value="all">All Players</option>
-                <option v-for="u in props.users" :key="u.id" :value="u.id">
-                    {{ u.name }}
-                </option>
             </select>
 
         </div>

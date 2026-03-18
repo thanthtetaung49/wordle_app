@@ -94,8 +94,10 @@ class WordleGameController extends Controller
     {
         $query = PlayerTracker::with('user');
 
-        if (!Auth::user()->role === 'admin') {
-            $query->where('user_id', $id);
+        // dd(!Auth::user()->role === 'admin');
+
+        if (Auth::user()->role !== 'admin') {
+            $query->where('user_id', Auth::id());
         }
 
         if ($request->has('search')) {
@@ -115,13 +117,11 @@ class WordleGameController extends Controller
             $query->where('user_id', $request->user_id);
         }
 
-        $activityLogs = $query->latest()->orderBy('id', 'desc')->paginate(10)->withQueryString();
-        $user = User::select('id', 'name')->get();
+        $activityLogs = $query->latest()->paginate(10)->withQueryString();
 
         return Inertia::render('PlayerActivities', [
             'activityLogs' => $activityLogs,
-            'filters' => $request->only(['search', 'result']),
-            'users' => $user
+            'filters' => $request->only(['search', 'result'])
         ]);
     }
 }
