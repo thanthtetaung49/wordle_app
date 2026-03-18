@@ -90,16 +90,38 @@ class WordleGameController extends Controller
         ]);
     }
 
-    public function getActivity($id = null)
+    public function getActivity(Request $request, $id = null)
     {
-        if (Auth::user()->role === 'admin') {
-            $activityLogs = PlayerTracker::with('user')->get();
-        } else {
-            $activityLogs = PlayerTracker::with('user')->where('user_id', $id)->get();
+        $query = PlayerTracker::with('user');
+
+        if (!Auth::user()->role === 'admin') {
+            $query->where('user_id', $id);
         }
 
+        if ($request->has('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('answer', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('user', function ($qu) use ($request) {
+                        $qu->where('name', 'like', '%' . $request->search . '%');
+                    });
+            });
+        }
+
+        if ($request->has('result') && $request->result !== 'all') {
+            $query->where('result', $request->result);
+        }
+
+        if ($request->filled('user_id') && $request->user_id !== 'all') {
+            $query->where('user_id', $request->user_id);
+        }
+
+        $activityLogs = $query->latest()->orderBy('id', 'desc')->paginate(10)->withQueryString();
+        $user = User::select('id', 'name')->get();
+
         return Inertia::render('PlayerActivities', [
-            'activityLogs' => $activityLogs
+            'activityLogs' => $activityLogs,
+            'filters' => $request->only(['search', 'result']),
+            'users' => $user
         ]);
     }
 }

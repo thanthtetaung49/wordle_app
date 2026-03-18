@@ -47,17 +47,23 @@ watch(board, (newBoard) => {
     localStorage.setItem('current_game', JSON.stringify(newBoard));
 }, { deep: true });
 
-const toggleLoginMode = () => { isLoginMode.value = !isLoginMode.value; }
+const toggleLoginMode = () => {
+    isLoginMode.value = !isLoginMode.value;
+    formData.reset();
+    formData.clearErrors();
+}
 
 const handleSubmit = () => {
     formData.status = "active";
     formData.loginTime = Date.now();
+
     const endpoint = isLoginMode.value ? '/login/player' : '/register/player';
     formData.post(endpoint, {
         preserveScroll: true,
         onSuccess: () => {
+            // window.location.href = route('home');
+            console.log('success');
             formData.reset();
-            window.location.href = route('home');
         }
     });
 }
@@ -115,7 +121,7 @@ const submitGuess = () => {
 };
 
 const processGuess = (guess) => {
-    const solChars = solution.value.split("");
+    const solChars = solution.value.toUpperCase().split("");
     const guessChars = guess.split("");
     const result = Array(5).fill("absent");
 
@@ -205,20 +211,24 @@ const getKeyClass = (key) => {
     return base + "bg-gray-500 text-white";
 };
 
+const existGame = () => {
+    router.get(route('player.existGame', {id: playerId}));
+    localStorage.removeItem('current_game');
+}
+
 const onKeyDown = (e) => handleInput(e.key.toUpperCase());
 
 onMounted(() => {
-    // resetGame();
     const saved = localStorage.getItem('current_game');
 
     if (saved) {
-        const parsedData = JSON.parse(saved);
-        if (parsedData.length > 0) {
-            board.value = parsedData;
+        board.value = JSON.parse(saved);
+    }
 
-            const firstEmptyRow = parsedData.findIndex(row => row.every(cell => cell === ""));
-            currentRowIndex.value = firstEmptyRow === -1 ? 0 : firstEmptyRow;
-        }
+    if (!solution.value && WORD_LIST && WORD_LIST.length > 0) {
+        const initialWord = WORD_LIST[0];
+        solution.value = (initialWord.word || initialWord).toUpperCase();
+        console.log("Solution initialized to:", solution.value);
     }
 
     window.addEventListener('keydown', onKeyDown);
@@ -286,21 +296,28 @@ onUnmounted(() => {
                         <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Full Name</label>
                         <input v-model="formData.name" required type="text"
                             class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
+                        <span v-if="formData.errors.name" class="text-red-500 text-sm">{{ formData.errors.name }}</span>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Email Address</label>
                         <input v-model="formData.email" required type="email"
                             class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
+                        <span v-if="formData.errors.email" class="text-red-500 text-sm">{{ formData.errors.email
+                            }}</span>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Password</label>
                         <input v-model="formData.password" required type="password"
                             class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
+                        <span v-if="formData.errors.password" class="text-red-500 text-sm">{{ formData.errors.password
+                            }}</span>
                     </div>
                     <div v-if="!isLoginMode">
                         <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Confirm Password</label>
                         <input v-model="formData.confirmPassword" required type="password"
                             class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
+                        <span v-if="formData.errors.confirmPassword" class="text-red-500 text-sm">{{
+                            formData.errors.confirmPassword }}</span>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
@@ -310,7 +327,7 @@ onUnmounted(() => {
                                 class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
 
                             <span v-if="formData.errors.tid" class="text-red-500 text-sm">{{ formData.errors.tid
-                                }}</span>
+                            }}</span>
                         </div>
 
                         <div v-if="!isLoginMode">
@@ -326,7 +343,7 @@ onUnmounted(() => {
                             </select>
 
                             <span v-if="formData.errors.dept" class="text-red-500 text-sm">{{ formData.errors.dept
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -337,7 +354,7 @@ onUnmounted(() => {
                 </form>
                 <div class="mt-6 text-center text-sm">
                     <span class="text-gray-400">{{ isLoginMode ? "Don't have an account?" : "Already have an account?"
-                    }}</span>
+                        }}</span>
                     <button @click="toggleLoginMode" class="ml-2 text-green-500 font-bold hover:underline">{{
                         isLoginMode ? 'Register' : 'Login' }}</button>
                 </div>
@@ -349,7 +366,7 @@ onUnmounted(() => {
             <h1 class="text-3xl font-black tracking-tighter">WORDLE</h1>
             <div class="flex items-center gap-3">
                 <span v-if="userRegistered" class="text-[10px] text-gray-500 uppercase tracking-widest">{{ playerName
-                }}</span>
+                    }}</span>
                 <Link v-if="userRegistered" :href="route('player.activity', { id: playerId })"
                     class="bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 px-3 py-1.5 rounded text-xs font-bold border border-blue-800/50 transition-colors">
                     {{ playerRole === 'admin' ? 'PLAYER ACTIVITIES' : 'MY ACTIVITY' }}
@@ -357,8 +374,8 @@ onUnmounted(() => {
                 <button @click="resetGame"
                     class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded text-xs font-bold border border-gray-700">NEW
                     GAME</button>
-                <Link :href="route('player.existGame', { id: playerId })"
-                    class="bg-gray-700 hover:bg-gray-600 hover:text-red-500 px-3 py-1 rounded text-sm">Exist Game</Link>
+                <button type="button" @click="existGame"
+                    class="bg-gray-700 hover:bg-gray-600 hover:text-red-500 px-3 py-1 rounded text-sm">Exist Game</button>
             </div>
         </header>
 
