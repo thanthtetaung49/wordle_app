@@ -63,17 +63,13 @@ const handleSubmit = () => {
 }
 
 const resetGame = () => {
-    // 1. Pick a new word (assuming WORD_LIST is an array of objects from Laravel)
     if (WORD_LIST && WORD_LIST.length > 0) {
         const randomWordObj = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
-        // Check if your DB returns an object { word: '...' } or just a string
         solution.value = (randomWordObj.word || randomWordObj).toUpperCase();
     }
 
-    // 2. Reset the grid to empty strings
     board.value = Array(6).fill().map(() => Array(5).fill(""));
 
-    // 3. Reset all tracking indexes
     currentRowIndex.value = 0;
     currentColIndex.value = 0;
     gameState.value = "playing";
@@ -81,7 +77,6 @@ const resetGame = () => {
     letterStates.value = {};
     showResultModal.value = false;
 
-    // 4. CRITICAL: Clear the saved game from storage so it doesn't reload the old board
     localStorage.removeItem('current_game');
 };
 
@@ -213,7 +208,7 @@ const getKeyClass = (key) => {
 const onKeyDown = (e) => handleInput(e.key.toUpperCase());
 
 onMounted(() => {
-    resetGame();
+    // resetGame();
     const saved = localStorage.getItem('current_game');
 
     if (saved) {
