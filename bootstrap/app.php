@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\APIKeyMiddleware;
+use App\Http\Middleware\CustomAuth;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,7 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ])
         ->alias([
-            'check.api.key' => APIKeyMiddleware::class
+            'check.api.key' => APIKeyMiddleware::class,
+            'wordle.auth' => CustomAuth::class
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
