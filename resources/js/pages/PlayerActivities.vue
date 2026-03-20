@@ -120,7 +120,7 @@ watch([search, resultFilter], debounce(([newSearch, newResult]) => {
                         </td>
                         <td class="px-6 py-4 text-center">
                             <span class="text-gray-200">{{ log.attempt_number }}</span><span class="text-gray-600"> /
-                                6</span>
+                                5</span>
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-3">

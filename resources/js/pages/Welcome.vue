@@ -26,7 +26,7 @@ const formData = useForm({
 });
 
 const solution = ref("");
-const board = ref(Array(6).fill().map(() => Array(5).fill("")));
+const board = ref(Array(5).fill().map(() => Array(5).fill("")));
 // const board = ref([]);
 const currentRowIndex = ref(0);
 const currentColIndex = ref(0);
@@ -43,8 +43,15 @@ const keys = [
     ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'DEL']
 ];
 
-watch(board, (newBoard) => {
-    localStorage.setItem('current_game', JSON.stringify(newBoard));
+watch([board, solution, currentRowIndex, letterStates, gameState], () => {
+    const gameStateSave = {
+        board: board.value,
+        solution: solution.value,
+        currentRowIndex: currentRowIndex.value,
+        letterStates: letterStates.value,
+        gameState: gameState.value
+    };
+    localStorage.setItem('current_game_state', JSON.stringify(gameStateSave));
 }, { deep: true });
 
 const toggleLoginMode = () => {
@@ -62,7 +69,7 @@ const handleSubmit = () => {
         preserveScroll: true,
         onSuccess: () => {
             // window.location.href = route('home');
-            console.log('success');
+            // console.log('success');
             formData.reset();
         }
     });
@@ -83,7 +90,7 @@ const resetGame = () => {
     letterStates.value = {};
     showResultModal.value = false;
 
-    localStorage.removeItem('current_game');
+    localStorage.removeItem('current_game_state');
 };
 
 const showMessage = (msg, duration = 2000) => {
@@ -127,7 +134,7 @@ const processGuess = (guess) => {
 
     let status = 'wrong';
     if (guess === solution.value) status = 'correct';
-    if (currentRowIndex.value === 5 && guess !== solution.value) status = 'lost';
+    if (currentRowIndex.value === 4 && guess !== solution.value) status = 'lost';
 
     router.post(route('tracker.store'), {
         answer: guess,
@@ -177,19 +184,22 @@ const updateKeyStatus = (char, status) => {
 const getCellClass = (row, col) => {
     const char = board.value[row][col];
     const isCurrentRow = row === currentRowIndex.value;
+
+    const isGameOver = gameState.value !== 'playing';
     const isPastRow = row < currentRowIndex.value;
-    const isWinningRow = gameState.value === 'won' && row === currentRowIndex.value;
+    const isFinishedRow = isGameOver && row === currentRowIndex.value;
 
     let classes = isCurrentRow && char ? "border-gray-400 scale-105" : "border-gray-700";
 
-    if (isPastRow || (gameState.value !== 'playing' && row <= currentRowIndex.value)) {
+    if (isPastRow || isFinishedRow) {
         const status = getStatus(row, col);
         if (status === 'correct') classes = "bg-green-600 border-green-600 text-white";
         else if (status === 'present') classes = "bg-yellow-600 border-yellow-600 text-white";
         else if (status === 'absent') classes = "bg-gray-700 border-gray-700 text-white";
     }
 
-    if (isWinningRow) classes += " bounce";
+    if (gameState.value === 'won' && row === currentRowIndex.value) classes += " bounce";
+
     return classes;
 };
 
@@ -213,22 +223,27 @@ const getKeyClass = (key) => {
 
 const existGame = () => {
     router.get(route('player.existGame', {id: playerId}));
-    localStorage.removeItem('current_game');
+    localStorage.removeItem('current_game_state');
 }
 
 const onKeyDown = (e) => handleInput(e.key.toUpperCase());
 
 onMounted(() => {
-    const saved = localStorage.getItem('current_game');
+    const saved = localStorage.getItem('current_game_state');
 
     if (saved) {
-        board.value = JSON.parse(saved);
-    }
-
-    if (!solution.value && WORD_LIST && WORD_LIST.length > 0) {
-        const initialWord = WORD_LIST[0];
-        solution.value = (initialWord.word || initialWord).toUpperCase();
-        console.log("Solution initialized to:", solution.value);
+       const parsed = JSON.parse(saved);
+        board.value = parsed.board;
+        solution.value = parsed.solution;
+        currentRowIndex.value = parsed.currentRowIndex;
+        letterStates.value = parsed.letterStates || {};
+        gameState.value = parsed.gameState || "playing";
+    } else {
+        // Only pick a word if there is no saved game
+        if (WORD_LIST && WORD_LIST.length > 0) {
+            const initialWord = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+            solution.value = (initialWord.word || initialWord).toUpperCase();
+        }
     }
 
     window.addEventListener('keydown', onKeyDown);
@@ -240,7 +255,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-900 text-white flex flex-col p-4 font-sans select-none">
+    <div class="min-h-screen bg-gray-900 text-white flex flex-col p-4 pt-0 font-sans select-none">
 
         <!-- Result Modal -->
         <div v-if="showResultModal"
@@ -362,7 +377,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Header -->
-        <header class="border-b border-gray-700 pb-2 mb-8 flex justify-between items-center max-w-3xl mx-auto w-full">
+        <header class="sticky top-0 z-40 bg-gray-900 border-b border-gray-700 py-3 mb-4 flex justify-between items-center max-w-3xl mx-auto w-full px-4">
             <h1 class="text-3xl font-black tracking-tighter">WORDLE</h1>
             <div class="flex items-center gap-3">
                 <span v-if="userRegistered" class="text-[10px] text-gray-500 uppercase tracking-widest">{{ playerName
@@ -380,7 +395,7 @@ onUnmounted(() => {
         </header>
 
         <!-- Game Board -->
-        <div class="flex-grow flex items-center justify-center">
+        <div class="flex flex-col items-center justify-center mt-5">
             <div class="grid grid-rows-6 gap-2">
                 <div v-for="(row, rowIndex) in board" :key="rowIndex" class="grid grid-cols-5 gap-2"
                     :class="{ 'shake': rowIndex === currentRowIndex && invalidGuess }">
@@ -394,7 +409,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Keyboard Section -->
-        <div class="max-w-xl mx-auto w-full mt-8 pb-4">
+        <div class="max-w-xl mx-auto w-full pb-4">
             <div v-for="(row, rIdx) in keys" :key="rIdx" class="flex justify-center gap-1.5 mb-2">
                 <button v-for="key in row" :key="key" @click="handleInput(key)" :class="getKeyClass(key)"
                     class="h-14 rounded-lg font-bold flex items-center justify-center transition-all uppercase active:scale-95 shadow-sm">
