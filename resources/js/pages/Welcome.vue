@@ -68,8 +68,7 @@ const handleSubmit = () => {
     formData.post(endpoint, {
         preserveScroll: true,
         onSuccess: () => {
-            // window.location.href = route('home');
-            // console.log('success');
+            window.location.href = route('home');
             formData.reset();
         }
     });
