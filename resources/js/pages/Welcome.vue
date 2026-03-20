@@ -80,7 +80,7 @@ const resetGame = () => {
         solution.value = (randomWordObj.word || randomWordObj).toUpperCase();
     }
 
-    board.value = Array(6).fill().map(() => Array(5).fill(""));
+    board.value = Array(5).fill().map(() => Array(5).fill(""));
 
     currentRowIndex.value = 0;
     currentColIndex.value = 0;
