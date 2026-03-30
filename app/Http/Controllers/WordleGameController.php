@@ -94,8 +94,6 @@ class WordleGameController extends Controller
     {
         $query = PlayerTracker::with('user');
 
-        // dd(!Auth::user()->role === 'admin');
-
         if (Auth::user()->role !== 'admin') {
             $query->where('user_id', Auth::id());
         }

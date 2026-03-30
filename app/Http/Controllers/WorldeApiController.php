@@ -50,19 +50,23 @@ class WorldeApiController extends Controller
             ->where('result', 'correct')
             ->min('attempt_number');
 
-        $winner = PlayerTracker::select('user_id', 'attempt_number', 'activity_date', 'result', 'answer')->with([
+
+        $winner = PlayerTracker::select('id', 'user_id', 'attempt_number', 'activity_date', 'result', 'answer')->with([
             'user' => function ($query) {
                 $query->select('id', 'name', 'email', 'tid', 'dept');
             }
         ])->whereBetween('activity_date', [$firstDayOfWeek, $lastDayOfWeek])
             ->where('result', 'correct')
             ->where('attempt_number', $minAttempt)
-            ->orderBy('id', 'desc')
-            ->get();
+            ->orderBy('id', 'asc')
+            ->first();
+
+        // dd($winner->toArray());
 
         return response()->json([
             'message' => 'success',
-            'data' => $winner
+            'data' => $winner,
+            'minAttempt' => $minAttempt
         ]);
     }
 }
