@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { Eye, EyeOff } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 // const WORD_LIST = ["REACT", "VUEJS", "WORLD", "APPLE", "SMART", "PLANT", "CLOUD", "STORM", "BREAK", "LIGHT", "FLAME", "GREAT", "PIZZA", "MUSIC", "WATER"];
@@ -27,15 +28,17 @@ const formData = useForm({
 
 const solution = ref("");
 const board = ref(Array(5).fill().map(() => Array(5).fill("")));
-// const board = ref([]);
 const currentRowIndex = ref(0);
 const currentColIndex = ref(0);
-const gameState = ref("playing"); // "playing", "won", "lost"
+const gameState = ref("playing");
 const message = ref("");
 const invalidGuess = ref(false);
 const letterStates = ref({});
 const isLoginMode = ref(true);
-const showResultModal = ref(false); // New state for result modal
+const showResultModal = ref(false);
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+const currentUrl = computed(() => page.url);
 
 const keys = [
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -221,7 +224,7 @@ const getKeyClass = (key) => {
 };
 
 const existGame = () => {
-    router.get(route('player.existGame', {id: playerId}));
+    router.get(route('player.existGame', { id: playerId }));
     localStorage.removeItem('current_game_state');
 }
 
@@ -230,8 +233,14 @@ const onKeyDown = (e) => handleInput(e.key.toUpperCase());
 onMounted(() => {
     const saved = localStorage.getItem('current_game_state');
 
+    if (currentUrl.value === '/register') {
+        isLoginMode.value = false;
+    } else {
+        isLoginMode.value = true;
+    }
+
     if (saved) {
-       const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
         board.value = parsed.board;
         solution.value = parsed.solution;
         currentRowIndex.value = parsed.currentRowIndex;
@@ -317,21 +326,40 @@ onUnmounted(() => {
                         <input v-model="formData.email" required type="email"
                             class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
                         <span v-if="formData.errors.email" class="text-red-500 text-sm">{{ formData.errors.email
-                            }}</span>
+                        }}</span>
                     </div>
-                    <div>
+                    <div class="relative">
                         <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Password</label>
-                        <input v-model="formData.password" required type="password"
-                            class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
+                        <div class="relative">
+                            <input v-model="formData.password" required :type="showPassword ? 'text' : 'password'"
+                                class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 pr-10 focus:ring-2 focus:ring-green-500 outline-none text-white">
+
+                            <button type="button" @click="showPassword = !showPassword"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+                                <Eye v-if="!showPassword" class="h-4 w-4" />
+                                <EyeOff v-else class="h-4 w-4" />
+                            </button>
+                        </div>
+
                         <span v-if="formData.errors.password" class="text-red-500 text-sm">{{ formData.errors.password
-                            }}</span>
+                        }}</span>
                     </div>
                     <div v-if="!isLoginMode">
                         <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Confirm Password</label>
-                        <input v-model="formData.confirmPassword" required type="password"
-                            class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
-                        <span v-if="formData.errors.confirmPassword" class="text-red-500 text-sm">{{
-                            formData.errors.confirmPassword }}</span>
+                        <div class="relative">
+                            <input v-model="formData.confirmPassword" required
+                                :type="showConfirmPassword ? 'text' : 'password'"
+                                class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 pr-10 focus:ring-2 focus:ring-green-500 outline-none text-white">
+
+                            <button type="button" @click="showConfirmPassword = !showConfirmPassword"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+                                <Eye v-if="!showConfirmPassword" class="h-4 w-4" />
+                                <EyeOff v-else class="h-4 w-4" />
+                            </button>
+                        </div>
+                        <span v-if="formData.errors.confirmPassword" class="text-red-500 text-sm">
+                            {{ formData.errors.confirmPassword }}
+                        </span>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
@@ -341,7 +369,7 @@ onUnmounted(() => {
                                 class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none">
 
                             <span v-if="formData.errors.tid" class="text-red-500 text-sm">{{ formData.errors.tid
-                            }}</span>
+                                }}</span>
                         </div>
 
                         <div v-if="!isLoginMode">
@@ -357,7 +385,7 @@ onUnmounted(() => {
                             </select>
 
                             <span v-if="formData.errors.dept" class="text-red-500 text-sm">{{ formData.errors.dept
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -366,9 +394,16 @@ onUnmounted(() => {
                         {{ isLoginMode ? 'START PLAYING' : 'REGISTER' }}
                     </button>
                 </form>
-                <div class="mt-6 text-center text-sm">
+
+                <div v-if="isLoginMode" class="flex justify-end mt-3">
+                    <a href="/forgot-password" class="text-xs text-green-500 hover:underline">
+                        Forgot Password?
+                    </a>
+                </div>
+
+                <div class="mt-4 text-center text-sm">
                     <span class="text-gray-400">{{ isLoginMode ? "Don't have an account?" : "Already have an account?"
-                        }}</span>
+                    }}</span>
                     <button @click="toggleLoginMode" class="ml-2 text-green-500 font-bold hover:underline">{{
                         isLoginMode ? 'Register' : 'Login' }}</button>
                 </div>
@@ -376,11 +411,12 @@ onUnmounted(() => {
         </div>
 
         <!-- Header -->
-        <header class="sticky top-0 z-40 bg-gray-900 border-b border-gray-700 py-3 mb-4 flex justify-between items-center max-w-3xl mx-auto w-full px-4">
+        <header
+            class="sticky top-0 z-40 bg-gray-900 border-b border-gray-700 py-3 mb-4 flex justify-between items-center max-w-3xl mx-auto w-full px-4">
             <h1 class="text-3xl font-black tracking-tighter">WORDLE</h1>
             <div class="flex items-center gap-3">
                 <span v-if="userRegistered" class="text-[10px] text-gray-500 uppercase tracking-widest">{{ playerName
-                    }}</span>
+                }}</span>
                 <Link v-if="userRegistered" :href="route('player.activity', { id: playerId })"
                     class="bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 px-3 py-1.5 rounded text-xs font-bold border border-blue-800/50 transition-colors">
                     {{ playerRole === 'admin' ? 'PLAYER ACTIVITIES' : 'MY ACTIVITY' }}
@@ -389,7 +425,8 @@ onUnmounted(() => {
                     class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded text-xs font-bold border border-gray-700">NEW
                     GAME</button>
                 <button type="button" @click="existGame"
-                    class="bg-gray-700 hover:bg-gray-600 hover:text-red-500 px-3 py-1 rounded text-sm">Exist Game</button>
+                    class="bg-gray-700 hover:bg-gray-600 hover:text-red-500 px-3 py-1 rounded text-sm">Exist
+                    Game</button>
             </div>
         </header>
 

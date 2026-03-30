@@ -11,4 +11,5 @@ Route::get('/user', function (Request $request) {
 Route::middleware('check.api.key')->group(function () {
     Route::post('/set/wordle/answer', [WorldeApiController::class, 'setWordle']);
     Route::get('/player/activity/tracker', [WorldeApiController::class, 'playerTracker']);
+    Route::get('/player/winner', [WorldeApiController::class, 'playerWinner']);
 });

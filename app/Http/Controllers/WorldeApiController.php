@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PlayerTracker;
 use App\Models\Wordle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WorldeApiController extends Controller
 {
@@ -18,7 +19,7 @@ class WorldeApiController extends Controller
             'date' => 'required|date',
         ]);
 
-        $upperWord = collect($word)->map(fn ($w) => strtoupper($w));
+        $upperWord = collect($word)->map(fn($w) => strtoupper($w));
 
         Wordle::updateOrCreate(
             ['date' => $date],
@@ -30,12 +31,34 @@ class WorldeApiController extends Controller
         ], 200);
     }
 
-    public function playerTracker () {
+    public function playerTracker()
+    {
         $data = PlayerTracker::get();
 
         return response()->json([
             'message' => 'success',
             'data' => $data
         ], 200);
+    }
+
+    public function playerWinner()
+    {
+        $firstDayOfWeek = now()->startOfWeek()->toDateString();
+        $lastDayOfWeek = now()->endOfWeek()->toDateString();
+
+        $minAttempt = PlayerTracker::whereBetween('activity_date', [$firstDayOfWeek, $lastDayOfWeek])
+            ->where('result', 'correct')
+            ->min('attempt_number');
+
+        $winner = PlayerTracker::whereBetween('activity_date', [$firstDayOfWeek, $lastDayOfWeek])
+            ->where('result', 'correct')
+            ->where('attempt_number', $minAttempt)
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return response()->json([
+            'message' => 'success',
+            'data' => $winner
+        ]);
     }
 }
