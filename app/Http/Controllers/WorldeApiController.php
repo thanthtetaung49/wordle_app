@@ -65,8 +65,7 @@ class WorldeApiController extends Controller
 
         return response()->json([
             'message' => 'success',
-            'data' => $winner,
-            'minAttempt' => $minAttempt
+            'data' => $winner
         ]);
     }
 }
